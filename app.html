@@ -525,10 +525,10 @@ function Header({route,setRoute,openSettings,navOpen,setNavOpen,roll,setRoll}){
 
 function OrgInstallningar(){
   const [s,setS]=useState(null); const [sparad,setSparad]=useState("");
-  useEffect(()=>{ (async()=>{ try{ const c=SB.cfg(); const rs=await SB._req("GET","org_settings?org_id=eq."+c.orgId); setS(rs&&rs[0]?rs[0]:{org_id:c.orgId,auto_klassning:false,intradesnotis:false,hastighetslarm:false,hastighetsgrans:110,tomgangslarm:false,tomgang_min:10,larm_mobil:"",_ny:true}); }catch(e){} })(); },[]);
+  useEffect(()=>{ (async()=>{ try{ const c=SB.cfg(); const rs=await SB._req("GET","org_settings?org_id=eq."+c.orgId); setS(rs&&rs[0]?rs[0]:{org_id:c.orgId,auto_klassning:false,intradesnotis:false,hastighetslarm:false,hastighetsgrans:110,tomgangslarm:false,tomgang_min:10,larm_mobil:"",sms_aktiv:true,_ny:true}); }catch(e){} })(); },[]);
   if(!s) return null;
   const set=(k,v)=>setS(x=>({...x,[k]:v}));
-  const spara=async()=>{ setSparad(""); try{ const c=SB.cfg(); const row={auto_klassning:!!s.auto_klassning,intradesnotis:!!s.intradesnotis,forarstatus:!!s.forarstatus,hastighetslarm:!!s.hastighetslarm,hastighetsgrans:parseInt(s.hastighetsgrans,10)||110,tomgangslarm:!!s.tomgangslarm,tomgang_min:parseInt(s.tomgang_min,10)||10,larm_mobil:s.larm_mobil||null,updated_at:new Date().toISOString()};
+  const spara=async()=>{ setSparad(""); try{ const c=SB.cfg(); const row={auto_klassning:!!s.auto_klassning,intradesnotis:!!s.intradesnotis,forarstatus:!!s.forarstatus,sms_aktiv:(s.sms_aktiv!==false),hastighetslarm:!!s.hastighetslarm,hastighetsgrans:parseInt(s.hastighetsgrans,10)||110,tomgangslarm:!!s.tomgangslarm,tomgang_min:parseInt(s.tomgang_min,10)||10,larm_mobil:s.larm_mobil||null,updated_at:new Date().toISOString()};
     if(s._ny){ await SB._req("POST","org_settings",Object.assign({},row,{org_id:c.orgId})); setS(x=>({...x,_ny:false})); }
     else { await SB._req("PATCH","org_settings?org_id=eq."+c.orgId,row); }
     setSparad("Sparat ✓"); setTimeout(()=>setSparad(""),2000);
@@ -539,6 +539,7 @@ function OrgInstallningar(){
     <Rad k="auto_klassning" titel="Auto-klassning via zoner" beskr="Resor som slutar i en zon med klassningsregler får resesyfte och resetyp automatiskt."/>
     <Rad k="intradesnotis" titel="Notis vid ankomst till zon" beskr="SMS när ett fordon anländer till en zon som har mottagare."/>
     <Rad k="forarstatus" titel="Förarstatus (upptagen/ledig)" beskr="Förare kan visa sin tillgänglighet med en knapp i appen."/>
+    <label className="flex items-start gap-2 text-sm py-1 cursor-pointer"><input type="checkbox" checked={s.sms_aktiv!==false} onChange={e=>set("sms_aktiv",e.target.checked)} className="mt-0.5"/><span><span className="font-medium">SMS-tjänst (larm & notiser) <span title="Denna tjänst kostar extra – se prislista." className="cursor-help inline-flex items-center justify-center bg-amber-100 text-amber-700 rounded-full w-4 h-4 text-[11px] font-bold align-middle ml-1">!</span></span><br/><span className="text-xs text-gray-500">SMS vid zonlarm, ankomstnotiser, hastighet och tomgång. Avstängd = inga larm-SMS skickas (inbjudningar och lösenordskoder påverkas inte).</span></span></label>
     <Rad k="hastighetslarm" titel="Hastighetslarm" beskr="SMS om ett fordon överskrider gränsen."/>
     {s.hastighetslarm&&<input value={s.hastighetsgrans==null?"":s.hastighetsgrans} onChange={e=>set("hastighetsgrans",e.target.value)} placeholder="Gräns km/h" className="border rounded px-2 py-1 text-sm w-28 ml-6 mb-1"/>}
     <Rad k="tomgangslarm" titel="Tomgångslarm" beskr="SMS om ett fordon står på tomgång längre än gränsen."/>
@@ -679,7 +680,7 @@ function Dashboard({resor,kvitton,incidenter,zoner,setRoute,openOnboarding}){
   const scol=(s)=>s>=80?"text-green-600":s>=60?"text-amber-600":"text-red-600";
   return (<div className="space-y-5">
     <div className="flex items-end justify-between flex-wrap gap-2">
-      <div><div className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#8A93A0] mb-1">Översikt · {ORG.namn}</div><h1 className="text-[28px] font-extrabold text-[#0E1726] leading-none">Hej Alex</h1></div>
+      <div><div className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#8A93A0] mb-1">Översikt · {ORG.namn}</div><h1 className="text-[28px] font-extrabold text-[#0E1726] leading-none">Hej {((FORARE.find(f=>f.id===SB.cfg().driverId)||{}).namn||(SB.cfg().email||"").split("@")[0]||"där")}</h1></div>
       <div className="font-mono text-[11px] text-[#8A93A0]">{fmtDatum(now)} · period 30 dagar</div>
     </div>
 
@@ -1809,8 +1810,17 @@ const SB={
   setCfg(c){ try{localStorage.setItem("msp_sb",JSON.stringify(c));}catch(e){} },
   base(){ return (this.cfg().url||"").replace(/\/+$/,""); },
   configured(){ const c=this.cfg(); return !!(c.url&&c.anon); },
-  loggedIn(){ const c=this.cfg(); return !!(c.url&&c.anon&&c.token&&c.orgId); },
-  loggedInDriver(){ const c=this.cfg(); return !!(c.url&&c.anon&&c.token&&c.driverId); },
+  loggedIn(){ const c=this.cfg(); return !!(c.url&&c.anon&&c.token&&c.orgId&&this._valid(c)); },
+  loggedInDriver(){ const c=this.cfg(); return !!(c.url&&c.anon&&c.token&&c.driverId&&this._valid(c)); },
+  _exp(t){ try{ return JSON.parse(atob(String(t).split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).exp*1000; }catch(e){ return 0; } },
+  _valid(c){ return !!(c.refresh || this._exp(c.token)>Date.now()); },
+  async ensureFresh(){ const c=this.cfg(); if(!c.token) return false; if(this._exp(c.token)-60000>Date.now()) return true; if(!c.refresh){ this.signOut(); return false; }
+    if(this._refreshing) return this._refreshing;
+    this._refreshing=(async()=>{ try{ const r=await fetch(this.base()+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:c.anon,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:c.refresh})}); const j=await r.json().catch(()=>({}));
+        if(!r.ok||!j.access_token){ if(r.status>=400&&r.status<500){ this.signOut(); return false; } return true; }
+        this.setCfg({...this.cfg(),token:j.access_token,refresh:j.refresh_token||c.refresh}); return true; }
+      catch(e){ return true; } finally{ setTimeout(()=>{ SB._refreshing=null; },0); } })();
+    return this._refreshing; },
   isAdmin(){ const r=this.cfg().role; return r==="admin"||r==="owner"||r==="aterforsaljare"; },
   status(){ if(this.loggedIn())return "online"; if(this.configured())return "config"; return "local"; },
   async signIn(email,password){ const c=this.cfg(); if(!c.url||!c.anon) throw new Error("Ange Supabase-URL och anon-nyckel först.");
@@ -1819,7 +1829,7 @@ const SB={
     let driverId=null, orgId=null, role=null;
     try{ const m=await fetch(this.base()+"/rest/v1/memberships?select=driver_id,org_id,role&user_id=eq."+(j.user&&j.user.id)+"",{headers:{apikey:c.anon,Authorization:"Bearer "+j.access_token}}); const ma=await m.json(); if(Array.isArray(ma)&&ma[0]){ const pri={owner:0,aterforsaljare:1,admin:2,projektledare:3,forare:4}; ma.sort((a,b)=>(pri[a.role]!=null?pri[a.role]:9)-(pri[b.role]!=null?pri[b.role]:9)); driverId=ma[0].driver_id; orgId=ma[0].org_id; role=ma[0].role; } }catch(e){}
     if(!orgId) throw new Error("Inloggad, men kontot saknar koppling till en organisation (memberships). Be admin koppla dig.");
-    this.setCfg({...c,token:j.access_token,uid:j.user&&j.user.id,driverId,orgId,role,email}); return true; },
+    this.setCfg({...c,token:j.access_token,refresh:j.refresh_token||null,uid:j.user&&j.user.id,driverId,orgId,role,email}); return true; },
   signOut(){ const c=this.cfg(); this.setCfg({url:c.url,anon:c.anon}); },
   async signInWithHash(th){ const c=this.cfg(); const url=(c.url||SB_DEFAULTS.url).replace(/\/+$/,""); const anon=c.anon||SB_DEFAULTS.anon; this.setCfg({...c,url,anon});
     const r=await fetch(url+"/auth/v1/verify",{method:"POST",headers:{apikey:anon,"Content-Type":"application/json"},body:JSON.stringify({type:"magiclink",token_hash:th})});
@@ -1827,8 +1837,8 @@ const SB={
     let driverId=null,orgId=null,role=null;
     try{ const m=await fetch(url+"/rest/v1/memberships?select=driver_id,org_id,role&user_id=eq."+(j.user&&j.user.id)+"",{headers:{apikey:anon,Authorization:"Bearer "+j.access_token}}); const ma=await m.json(); if(Array.isArray(ma)&&ma[0]){ const pri={owner:0,aterforsaljare:1,admin:2,projektledare:3,forare:4}; ma.sort((a,b)=>(pri[a.role]!=null?pri[a.role]:9)-(pri[b.role]!=null?pri[b.role]:9)); driverId=ma[0].driver_id; orgId=ma[0].org_id; role=ma[0].role; } }catch(e){}
     if(!orgId) throw new Error("Kontot saknar koppling till en organisation.");
-    this.setCfg({url,anon,token:j.access_token,uid:j.user&&j.user.id,driverId,orgId,role,email:j.user&&j.user.email}); return true; },
-  async _req(method,path,body){ const c=this.cfg(); const r=await fetch(this.base()+"/rest/v1/"+path,{method,headers:{apikey:c.anon,Authorization:"Bearer "+c.token,"Content-Type":"application/json",Prefer:"return=representation"},body:body?JSON.stringify(body):undefined}); if(!r.ok) throw new Error(await r.text()); return method==="DELETE"?true:r.json(); },
+    this.setCfg({url,anon,token:j.access_token,refresh:j.refresh_token||null,uid:j.user&&j.user.id,driverId,orgId,role,email:j.user&&j.user.email}); return true; },
+  async _req(method,path,body){ if(this.cfg().token&&!(await this.ensureFresh())){ location.reload(); throw new Error("Sessionen har gått ut. Logga in igen."); } const c=this.cfg(); const r=await fetch(this.base()+"/rest/v1/"+path,{method,headers:{apikey:c.anon,Authorization:"Bearer "+c.token,"Content-Type":"application/json",Prefer:"return=representation"},body:body?JSON.stringify(body):undefined}); if(r.status===401&&c.token){ this.signOut(); location.reload(); throw new Error("Sessionen har gått ut. Logga in igen."); } if(!r.ok) throw new Error(await r.text()); return method==="DELETE"?true:r.json(); },
   list(table){ return this._req("GET",table+"?select=*&order=created_at.desc"); },
   insert(table,row){ const c=this.cfg(); return this._req("POST",table,{...row,org_id:c.orgId,driver_id:c.driverId}); },
   remove(table,id){ return this._req("DELETE",table+"?id=eq."+id); },
@@ -1847,7 +1857,7 @@ const SB={
     try{ ["kvitton","laddning","incidenter","zoner","resor_ov","bokningar","larm"].forEach(k=>localStorage.removeItem("msp_"+k)); }catch(e){}
     try{RESOR.length=0;}catch(e){} try{KVITTON_INIT.length=0;}catch(e){} try{LADDNING_INIT.length=0;}catch(e){} try{INCIDENTER_INIT.length=0;}catch(e){}
     try{ZONER_INIT.length=0;}catch(e){} try{MASKINER.length=0;}catch(e){} try{ANVANDARLOGG.length=0;}catch(e){} try{MOTTAGARE_INIT.length=0;}catch(e){}
-    try{TEMPSENSORER.length=0;}catch(e){} try{STATIONER.length=0;}catch(e){} try{ROERELSELARM.length=0;}catch(e){}
+    try{TEMPSENSORER.length=0;}catch(e){} try{STATIONER.length=0;}catch(e){} try{ROERELSELARM.length=0;}catch(e){} try{HANDELSER.length=0;}catch(e){} try{ENHETSHANDELSER.length=0;}catch(e){}
     try{ ALLAOBJEKT.length=0; FORDON.forEach(v=>{ ALLAOBJEKT.push({id:v.id,namn:v.regNr,typ:"Fordon"}); }); }catch(e){}
     const forsta=!SB._hydrated; SB._hydrated=true; return forsta; },
   removeBy(table,filter){ return this._req("DELETE",table+"?"+filter); },
@@ -2275,6 +2285,9 @@ function SupportChat(){
   </div>);
 }
 const KATEGORIER=[];
+// Sessionskontroll: förnya token i tid, logga ut när sessionen inte längre är giltig.
+if(SB.cfg().token){ SB.ensureFresh().then(ok=>{ if(!ok) location.reload(); }); }
+setInterval(()=>{ if(SB.cfg().token) SB.ensureFresh().then(ok=>{ if(!ok) location.reload(); }); },240000);
 const SB_DEFAULTS={url:"https://jmyfwgxfyeblfavduqig.supabase.co",anon:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpteWZ3Z3hmeWVibGZhdmR1cWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjkzMzIsImV4cCI6MjA5ODM0NTMzMn0.yDNsuZVezbETAAjq1z2iaxXPRb7CyENDdcrfpcKqsH8"};
 function LoginGate({onDone}){
   const [email,setEmail]=useState(""); const [pw,setPw]=useState(""); const [busy,setBusy]=useState(false); const [msg,setMsg]=useState("");
