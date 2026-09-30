@@ -32,6 +32,7 @@
     <button data-vy="buggar" class="navbtn text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/10 w-full">Kritiska buggar</button>
     <button data-vy="support" class="navbtn text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/10 w-full">Support & ärenden</button>
     <button data-vy="rapporter" class="navbtn text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-200 hover:bg-white/10 w-full">Rapporter</button>
+    <button id="demoMobil" type="button" class="text-left px-3 py-2 rounded-lg text-sm font-semibold hover:bg-white/10 w-full" style="color:#C2F24D">📱 Demo – mobilvy</button>
     <div class="md:mt-auto w-full"><button id="loggaUt" class="text-sm text-gray-500 hover:text-white px-3 py-2">Logga ut</button></div>
   </aside>
 
@@ -374,6 +375,34 @@ function visaUnderlag(u){ var k=(u.detaljer&&u.detaljer.kund)||{}; var pt=(u.det
    "<script>window.print();</"+"script></body></html>");
   w.document.close(); }
 if(token()){ visa(true); laddaKunder(); } else { visa(false); }
+</script>
+<!-- Demo: appen i telefonram (390×844) -->
+<div id="demoOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(9,20,38,.88);flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <span style="color:#fff;font-weight:700;font-size:14px;padding:8px 6px">📱 Milvy – mobilvy</span>
+    <button type="button" id="demoReload" style="background:#fff;color:#091426;border:0;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer">↻ Ladda om</button>
+    <button type="button" id="demoFonster" style="background:#fff;color:#091426;border:0;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer">Öppna i eget fönster</button>
+    <button type="button" id="demoStang" style="background:#C2F24D;color:#091426;border:0;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer">✕ Stäng</button>
+  </div>
+  <div id="demoTelefon" style="box-sizing:content-box;width:390px;height:844px;flex:none;border:12px solid #0b0b0f;border-radius:52px;overflow:hidden;background:#fff;box-shadow:0 30px 80px rgba(0,0,0,.5);transform-origin:top center;position:relative">
+    <div style="position:absolute;top:8px;left:50%;transform:translateX(-50%);width:110px;height:30px;background:#0b0b0f;border-radius:20px;z-index:2;pointer-events:none"></div>
+    <iframe id="demoFrame" title="Milvy mobilvy" style="width:100%;height:100%;border:0;display:block"></iframe>
+  </div>
+</div>
+<script>
+(function(){
+  var ov=document.getElementById("demoOverlay"), tel=document.getElementById("demoTelefon"), fr=document.getElementById("demoFrame");
+  function skala(){ var s=Math.min(1,(window.innerHeight-90)/868,(window.innerWidth-24)/414); tel.style.transform="scale("+s+")"; tel.style.marginBottom=(-(1-s)*868)+"px"; }
+  function oppna(){ if(!fr.getAttribute("src")) fr.setAttribute("src","app.html"); ov.style.display="flex"; skala(); document.body.style.overflow="hidden"; }
+  function stang(){ ov.style.display="none"; document.body.style.overflow=""; }
+  document.getElementById("demoMobil").addEventListener("click",oppna);
+  document.getElementById("demoStang").addEventListener("click",stang);
+  document.getElementById("demoReload").addEventListener("click",function(){ fr.setAttribute("src","app.html?t="+Date.now()); });
+  document.getElementById("demoFonster").addEventListener("click",function(){ window.open("app.html","milvyMobil","width=390,height=844"); });
+  ov.addEventListener("click",function(e){ if(e.target===ov) stang(); });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&ov.style.display==="flex") stang(); });
+  window.addEventListener("resize",function(){ if(ov.style.display==="flex") skala(); });
+})();
 </script>
 </body>
 </html>
