@@ -2265,8 +2265,8 @@ function SupportChat(){
     setBusy(false); };
   const stNamn=(s)=>({ny:"Ny",pagaende:"Pågående",lost:"Löst",stangd:"Stängd"}[s]||s);
   return (<div>
-    <button onClick={()=>setOpen(!open)} className="fixed bottom-5 right-5 z-[1300] rounded-full shadow-xl px-4 py-3 text-sm font-semibold" style={{background:"#C2F24D"}}>{open?"✕ Stäng":("💬 Support"+(Object.values(olasta).reduce((a,b)=>a+b,0)?" ("+Object.values(olasta).reduce((a,b)=>a+b,0)+")":""))}</button>
-    {open&&<div className="fixed bottom-20 right-5 z-[1300] w-[340px] max-w-[92vw] bg-white rounded-2xl shadow-2xl border flex flex-col" style={{height:"460px"}}>
+    <button onClick={()=>setOpen(!open)} className="fixed bottom-20 right-5 z-[1300] rounded-full shadow-xl px-4 py-3 text-sm font-semibold" style={{background:"#C2F24D"}}>{open?"✕ Stäng":("💬 Support"+(Object.values(olasta).reduce((a,b)=>a+b,0)?" ("+Object.values(olasta).reduce((a,b)=>a+b,0)+")":""))}</button>
+    {open&&<div className="fixed bottom-36 right-5 z-[1300] w-[340px] max-w-[92vw] bg-white rounded-2xl shadow-2xl border flex flex-col" style={{height:"460px"}}>
       <div className="px-4 py-3 border-b flex items-center justify-between"><span className="font-bold text-sm">Milvy Support</span>
         <button onClick={()=>{setVald(null);setNyMode(true);}} className="text-xs text-[#2F4BFF] font-medium">+ Nytt ärende</button></div>
       {!vald&&!nyMode&&<div className="flex-1 overflow-y-auto p-3 space-y-1">
